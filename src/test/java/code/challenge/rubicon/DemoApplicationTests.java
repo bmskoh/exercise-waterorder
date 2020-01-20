@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -23,30 +24,30 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import code.challenge.rubicon.controllers.WaterOrderController;
 import code.challenge.rubicon.model.WaterOrder;
 
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
-class DemoApplicationTests {
+class WaterOrderIntegrationTests {
 	@LocalServerPort
 	private int port;
 
 	@Autowired
 	private TestRestTemplate restTemplate;
 
-	@Autowired
-	private WaterOrderController controller;
+	@Value("${tempcredential.username:farmer}")
+	private String userName;
+	@Value("${tempcredential.password:password}")
+	private String password;
 
 	private String baseUrl;
-
-	@Test
-	void contextLoads() {
-		assertThat(controller).isNotNull();
-	}
 
 	@BeforeEach
 	public void init() {
 		this.baseUrl = "http://localhost:" + port + "/waterorders";
+	}
+
+	private TestRestTemplate getRestTemplate() {
+		return this.restTemplate.withBasicAuth(this.userName, this.password);
 	}
 
 	private HttpEntity<WaterOrder> createHttpEntityWithFarmIdStartDateTime(String farmId, LocalDateTime startDateTime) {
@@ -66,7 +67,8 @@ class DemoApplicationTests {
 		LocalDateTime startTime = LocalDateTime.now().plusDays(1);
 		HttpEntity<WaterOrder> request = this.createHttpEntityWithFarmIdStartDateTime(farmId, startTime);
 
-		ResponseEntity<WaterOrder> result = this.restTemplate.postForEntity(this.baseUrl, request, WaterOrder.class);
+		ResponseEntity<WaterOrder> result = this.getRestTemplate().postForEntity(this.baseUrl, request,
+				WaterOrder.class);
 
 		assertThat(result.getStatusCodeValue()).isEqualTo(200);
 
@@ -75,7 +77,7 @@ class DemoApplicationTests {
 		assertThat(returnedWaterOrder.getStartDateTime()).isEqualTo(startTime);
 		assertThat(returnedWaterOrder.getDuration()).isEqualTo(Duration.ofHours(5));
 
-		assertThat(this.restTemplate
+		assertThat(this.getRestTemplate()
 				.getForObject(this.baseUrl + "/" + returnedWaterOrder.getOrderId(), WaterOrder.class).getOrderId())
 						.isEqualTo(returnedWaterOrder.getOrderId());
 	}
@@ -87,7 +89,7 @@ class DemoApplicationTests {
 		LocalDateTime startTime = LocalDateTime.now().minusHours(1);
 		HttpEntity<WaterOrder> request = this.createHttpEntityWithFarmIdStartDateTime(farmdId, startTime);
 
-		ResponseEntity<Map> result = this.restTemplate.postForEntity(this.baseUrl, request, Map.class);
+		ResponseEntity<Map> result = this.getRestTemplate().postForEntity(this.baseUrl, request, Map.class);
 
 		assertThat(result.getStatusCodeValue()).isEqualTo(400);
 
@@ -99,7 +101,7 @@ class DemoApplicationTests {
 		assertThat(errorMap.get(0).get("field")).isEqualTo("startDateTime");
 
 		// Make another GET request to check the order is not placed.
-		ResponseEntity<Map> emptyResponse = this.restTemplate.getForEntity(this.baseUrl + "?farmid=" + farmdId,
+		ResponseEntity<Map> emptyResponse = this.getRestTemplate().getForEntity(this.baseUrl + "?farmid=" + farmdId,
 				Map.class);
 
 		// Not found
@@ -116,11 +118,11 @@ class DemoApplicationTests {
 		LocalDateTime startTime = LocalDateTime.now().plusDays(1);
 		HttpEntity<WaterOrder> request = this.createHttpEntityWithFarmIdStartDateTime(farmId, startTime);
 
-		this.restTemplate.postForEntity(this.baseUrl, request, WaterOrder.class);
+		this.getRestTemplate().postForEntity(this.baseUrl, request, WaterOrder.class);
 
 		request = this.createHttpEntityWithFarmIdStartDateTime(farmId, startTime.plusHours(1));
 
-		ResponseEntity<Map> errResult = this.restTemplate.postForEntity(this.baseUrl, request, Map.class);
+		ResponseEntity<Map> errResult = this.getRestTemplate().postForEntity(this.baseUrl, request, Map.class);
 
 		assertThat(errResult.getStatusCodeValue()).isEqualTo(400);
 
@@ -136,16 +138,16 @@ class DemoApplicationTests {
 		HttpEntity<WaterOrder> request = this.createHttpEntityWithFarmIdStartDateTime(farmId,
 				LocalDateTime.now().plusHours(1));
 
-		ResponseEntity<Map> result = this.restTemplate.postForEntity(this.baseUrl, request, Map.class);
+		ResponseEntity<Map> result = this.getRestTemplate().postForEntity(this.baseUrl, request, Map.class);
 		assertThat(result.getStatusCodeValue()).isEqualTo(200);
 
 		request = this.createHttpEntityWithFarmIdStartDateTime("SecondFarmId", LocalDateTime.now().plusHours(1));
 
-		result = this.restTemplate.postForEntity(this.baseUrl, request, Map.class);
+		result = this.getRestTemplate().postForEntity(this.baseUrl, request, Map.class);
 		assertThat(result.getStatusCodeValue()).isEqualTo(200);
 
-		List<Map<String, String>> returnedOrders = this.restTemplate.getForObject(this.baseUrl + "?farmid=" + farmId,
-				new ArrayList<Map<String, String>>().getClass());
+		List<Map<String, String>> returnedOrders = this.getRestTemplate()
+				.getForObject(this.baseUrl + "?farmid=" + farmId, new ArrayList<Map<String, String>>().getClass());
 
 		assertThat(returnedOrders.size()).isEqualTo(1);
 		assertThat(returnedOrders.get(0).get("farmId")).isEqualTo(farmId);
@@ -158,14 +160,16 @@ class DemoApplicationTests {
 		LocalDateTime startTime = LocalDateTime.now().plusDays(1);
 		HttpEntity<WaterOrder> request = this.createHttpEntityWithFarmIdStartDateTime(farmId, startTime);
 
-		ResponseEntity<WaterOrder> result = this.restTemplate.postForEntity(this.baseUrl, request, WaterOrder.class);
+		ResponseEntity<WaterOrder> result = this.getRestTemplate().postForEntity(this.baseUrl, request,
+				WaterOrder.class);
 
 		String createdOrderId = result.getBody().getOrderId();
 
-		this.restTemplate.put(this.baseUrl + "/" + createdOrderId + "/cancellation", null);
+		this.getRestTemplate().put(this.baseUrl + "/" + createdOrderId + "/cancellation", null);
 
-		assertThat(this.restTemplate.getForObject(this.baseUrl + "/" + createdOrderId, WaterOrder.class).getStatus())
-				.isEqualTo(WaterOrder.OrderStatus.CANCELLED);
+		assertThat(
+				this.getRestTemplate().getForObject(this.baseUrl + "/" + createdOrderId, WaterOrder.class).getStatus())
+						.isEqualTo(WaterOrder.OrderStatus.CANCELLED);
 
 	}
 
@@ -174,12 +178,12 @@ class DemoApplicationTests {
 	public void testCancelNonExistingWaterOrder() throws Exception {
 		String fakeOrderId = "NonExistingFake";
 
-		this.restTemplate.put(this.baseUrl + "/" + fakeOrderId + "/cancellation", null);
+		this.getRestTemplate().put(this.baseUrl + "/" + fakeOrderId + "/cancellation", null);
 
 		RequestEntity<?> rEntity = RequestEntity.put(new URI(this.baseUrl + "/" + fakeOrderId + "/cancellation"))
 				.body(null);
 
-		ResponseEntity<Map> response = this.restTemplate.exchange(rEntity, Map.class);
+		ResponseEntity<Map> response = this.getRestTemplate().exchange(rEntity, Map.class);
 		assertThat(response.getStatusCodeValue()).isEqualTo(404);
 		assertThat((String) response.getBody().get("orderId")).contains("doesn't exist");
 	}

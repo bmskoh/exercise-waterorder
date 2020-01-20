@@ -10,7 +10,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
 import org.springframework.web.bind.WebDataBinder;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.InitBinder;
@@ -28,6 +27,9 @@ import code.challenge.rubicon.exceptions.OrderValidityException;
 import code.challenge.rubicon.model.WaterOrder;
 import code.challenge.rubicon.services.IWaterOrderService;
 
+/**
+ * Rest controller that provides access to IWaterOrderService.
+ */
 @RestController
 public class WaterOrderController {
     private IWaterOrderService waterOrderService;
@@ -64,6 +66,10 @@ public class WaterOrderController {
         this.waterOrderService.cancelWaterOrder(orderId);
     }
 
+    // =========================================================
+    // Exception Handlers
+    // =========================================================
+
     @ResponseStatus(HttpStatus.NOT_FOUND)
     @ExceptionHandler(OrderNotFoundException.class)
     public Map<String, String> handleOrderNotFoundException(OrderNotFoundException ex) {
@@ -88,13 +94,18 @@ public class WaterOrderController {
         return error;
     }
 
+    // =========================================================
+    // End of Exception Handlers
+    // =========================================================
+
     @InitBinder
     protected void initBinder(WebDataBinder binder) {
         binder.addValidators(new DurationValidator());
     }
 
     /**
-     * Extra validator to filter out negative duration
+     * Extra validator to filter negative duration. All other validations are done
+     * by Hibernate validator by annotations in WaterOrder.java
      */
     class DurationValidator implements Validator {
 

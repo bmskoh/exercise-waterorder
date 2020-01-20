@@ -3,6 +3,9 @@ package code.challenge.rubicon;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+/**
+ * Main class of this application
+ */
 @SpringBootApplication
 public class WaterOrderApplication {
 

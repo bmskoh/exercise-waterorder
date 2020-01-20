@@ -13,6 +13,10 @@ import code.challenge.rubicon.model.WaterOrder;
 import code.challenge.rubicon.services.WaterOrderRequestAction;
 import code.challenge.rubicon.services.repository.IWaterOrderReadonlyRepository;
 
+/**
+ * As a IValidityChecker, this class check if given WaterOrder has any
+ * overlapping delivery time range with existing orders for the farm.
+ */
 @Component
 public class DeliveryTimeOverlapValidator implements IValidityChecker {
 
@@ -25,8 +29,11 @@ public class DeliveryTimeOverlapValidator implements IValidityChecker {
     }
 
     public Optional<String> checkValidity(WaterOrder waterOrder, WaterOrderRequestAction action) {
+        // This validator is only interested in CREATE action.
         if (action == WaterOrderRequestAction.CREATE) {
             try {
+                // Get all orders for the farm and check if there's any delivery time
+                // overlapping.
                 List<WaterOrder> orders = this.orderRetriever.getWaterOrderByFarmrId(waterOrder.getFarmId());
                 Optional<WaterOrder> overlappingOrder = orders.stream().filter(order -> {
                     return this.isTimeOverlap(order, waterOrder);
@@ -41,8 +48,9 @@ public class DeliveryTimeOverlapValidator implements IValidityChecker {
                             existingOrder.getOrderId(), existingOrder.getStartDateTime(), existingOrder.getDuration()));
                 }
             } catch (OrderNotFoundException ex) {
-                // This is not a problem in this IValidityChecker's view.
-                this.logger.info("Couldn't find orders for the given farm id", ex);
+                // This is not a problem in this IValidityChecker's view. Just log it.
+                this.logger
+                        .info(String.format("Couldn't find orders for the given farm id '%s'", waterOrder.getFarmId()));
             }
         }
         return Optional.empty();
@@ -59,8 +67,8 @@ public class DeliveryTimeOverlapValidator implements IValidityChecker {
 
         // If any of startTime1 or endTime1 is between startTime2 and endTime2,
         // then it means these orders' time overlap.
-        if ((startTime1.compareTo(startTime2) > 0 && startTime1.compareTo(endTime2) < 0)
-                || (endTime1.compareTo(startTime2) > 0 && endTime1.compareTo(endTime2) < 0)) {
+        if ((startTime1.compareTo(startTime2) >= 0 && startTime1.compareTo(endTime2) <= 0)
+                || (endTime1.compareTo(startTime2) >= 0 && endTime1.compareTo(endTime2) <= 0)) {
             return true;
         }
         return false;

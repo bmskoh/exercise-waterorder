@@ -13,8 +13,8 @@ import code.challenge.rubicon.services.WaterOrderRequestAction;
  * Validate WatorOrder. This class can include multiple IValidityCheckers and
  * each IValidityCheckers has it's own rule to validate given WaterOrder.
  *
- * As an excercise, we only have 1 IValidityChecker, which is
- * DeliveryTimeOverlapValidator, as of 16/01/2020.
+ * As an excercise, we only have 2 IValidityCheckers, which are
+ * DeliveryTimeOverlapValidator and CancelActivityValidator, as of 20/01/2020.
  */
 @Component
 public class WaterOrderValidator implements IWaterOrderValidator {
@@ -27,7 +27,9 @@ public class WaterOrderValidator implements IWaterOrderValidator {
     }
 
     /**
-     *
+     * Do validation by calling checkValidity() of each IValidationChecker. If
+     * there's any validation error message is returned, return it straight away
+     * instead of calling all remaining IValidityChecker.
      */
     public Optional<String> checkOrderValidity(WaterOrder waterOrder, WaterOrderRequestAction action) {
         for (IValidityChecker validityChecker : this.validationCheckers) {

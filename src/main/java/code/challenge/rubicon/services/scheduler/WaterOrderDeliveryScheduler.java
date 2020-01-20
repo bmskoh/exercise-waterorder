@@ -20,6 +20,10 @@ import code.challenge.rubicon.exceptions.OrderNotFoundException;
 import code.challenge.rubicon.model.WaterOrder;
 import code.challenge.rubicon.services.orderstatus.IWaterOrderStatusHelper;;
 
+/**
+ * This schedule simulates delivery. Print messages on console when at order's
+ * start time and end time.
+ */
 @Component
 public class WaterOrderDeliveryScheduler implements IWaterOrderDeliveryScheduler {
 
@@ -64,6 +68,10 @@ public class WaterOrderDeliveryScheduler implements IWaterOrderDeliveryScheduler
         deliveryTask.cancelDelivery();
     }
 
+    /**
+     * Represents a delivery task. It includes it's own scheduled start/end delivery
+     * task.
+     */
     private class DeliveryTask {
         private WaterOrder waterOrder;
         private ScheduledFuture<?> scheduledDeliverStart;
@@ -73,7 +81,13 @@ public class WaterOrderDeliveryScheduler implements IWaterOrderDeliveryScheduler
             this.waterOrder = waterOrder;
         }
 
+        /**
+         * Schedule start/end time of delivery task.
+         */
         void scheduleDelivery() {
+            // Use given Clock object instead of calling LocalDateTime.now() without
+            // parameter. This improves
+            // testability by enabling now() returning fixed datetime.
             long delayToStartTime = LocalDateTime.now(WaterOrderDeliveryScheduler.this.clock)
                     .until(waterOrder.getStartDateTime(), ChronoUnit.SECONDS);
 
@@ -107,6 +121,12 @@ public class WaterOrderDeliveryScheduler implements IWaterOrderDeliveryScheduler
             }, delayToStartTime + this.waterOrder.getDuration().getSeconds(), TimeUnit.SECONDS);
         }
 
+        /**
+         * Cancel both of start/end delivery tasks.
+         *
+         * @throws OrderNotFoundException If order to update status cannot be found,
+         *                                OrderNotFoundException is thrown.
+         */
         void cancelDelivery() throws OrderNotFoundException {
             if (!this.scheduledDeliverStart.isDone()) {
                 this.scheduledDeliverStart.cancel(true);

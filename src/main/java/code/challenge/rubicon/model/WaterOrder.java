@@ -9,6 +9,9 @@ import javax.validation.constraints.Future;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
+/**
+ * Model class representing a water order.
+ */
 public class WaterOrder {
 
     public enum OrderStatus {
