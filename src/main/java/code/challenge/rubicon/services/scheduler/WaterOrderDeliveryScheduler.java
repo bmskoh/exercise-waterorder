@@ -31,10 +31,13 @@ public class WaterOrderDeliveryScheduler implements IWaterOrderDeliveryScheduler
 
     private IWaterOrderStatusHelper statusChanger;
 
+    // To update orders' status when order is cancelled/delivered
     private ScheduledExecutorService scheduler;
 
+    // DeliveryTasks by orderId
     private Map<String, DeliveryTask> scheduledDeliveries = new HashMap<>();
 
+    // To use for making scheduler testable.
     private Clock clock;
 
     public WaterOrderDeliveryScheduler(IWaterOrderStatusHelper statusChanger,
