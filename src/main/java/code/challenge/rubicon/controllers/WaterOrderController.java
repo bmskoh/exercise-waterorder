@@ -78,7 +78,7 @@ public class WaterOrderController {
         return error;
     }
 
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ResponseStatus(HttpStatus.CONFLICT)
     @ExceptionHandler(OrderValidityException.class)
     public Map<String, String> handleOrderValidityException(OrderValidityException ex) {
         Map<String, String> error = new HashMap<>();

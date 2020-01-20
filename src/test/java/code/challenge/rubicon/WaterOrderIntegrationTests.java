@@ -124,7 +124,7 @@ class WaterOrderIntegrationTests {
 
 		ResponseEntity<Map> errResult = this.getRestTemplate().postForEntity(this.baseUrl, request, Map.class);
 
-		assertThat(errResult.getStatusCodeValue()).isEqualTo(400);
+		assertThat(errResult.getStatusCodeValue()).isEqualTo(409);
 
 		Map<String, String> returnedWaterOrder = errResult.getBody();
 
@@ -154,7 +154,7 @@ class WaterOrderIntegrationTests {
 	}
 
 	@Test
-	@DisplayName("Add order and cancel it.")
+	@DisplayName("Add order and cancel it and cancel it again.")
 	public void testAddWaterOrderAndCancel() throws Exception {
 		String farmId = "AddCancel";
 		LocalDateTime startTime = LocalDateTime.now().plusDays(1);
@@ -165,12 +165,19 @@ class WaterOrderIntegrationTests {
 
 		String createdOrderId = result.getBody().getOrderId();
 
+		// Cancel the order
 		this.getRestTemplate().put(this.baseUrl + "/" + createdOrderId + "/cancellation", null);
 
 		assertThat(
 				this.getRestTemplate().getForObject(this.baseUrl + "/" + createdOrderId, WaterOrder.class).getStatus())
 						.isEqualTo(WaterOrder.OrderStatus.CANCELLED);
 
+		// Cancel the same order again
+		RequestEntity<?> rEntity = RequestEntity.put(new URI(this.baseUrl + "/" + createdOrderId + "/cancellation"))
+				.body(null);
+		ResponseEntity<Map> response = this.getRestTemplate().exchange(rEntity, Map.class);
+		// Expect CONFLICT response
+		assertThat(response.getStatusCodeValue()).isEqualTo(409);
 	}
 
 	@Test
@@ -178,7 +185,8 @@ class WaterOrderIntegrationTests {
 	public void testCancelNonExistingWaterOrder() throws Exception {
 		String fakeOrderId = "NonExistingFake";
 
-		this.getRestTemplate().put(this.baseUrl + "/" + fakeOrderId + "/cancellation", null);
+		// this.getRestTemplate().put(this.baseUrl + "/" + fakeOrderId +
+		// "/cancellation", null);
 
 		RequestEntity<?> rEntity = RequestEntity.put(new URI(this.baseUrl + "/" + fakeOrderId + "/cancellation"))
 				.body(null);
