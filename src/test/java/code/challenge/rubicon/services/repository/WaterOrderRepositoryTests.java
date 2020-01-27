@@ -16,7 +16,7 @@ import code.challenge.rubicon.model.WaterOrder;
 
 public class WaterOrderRepositoryTests {
 
-    private WaterOrderRepository repository;
+    private HashMapOrderRepository repository;
 
     private String farmdIdToFind = "TheFarm";
     private final WaterOrder order1 = new WaterOrder("", "farmId1", LocalDateTime.now(), Duration.ofSeconds(10),
@@ -28,7 +28,7 @@ public class WaterOrderRepositoryTests {
 
     @BeforeEach
     public void initEach() {
-        this.repository = new WaterOrderRepository();
+        this.repository = new HashMapOrderRepository();
     }
 
     @Test

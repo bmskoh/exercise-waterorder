@@ -17,9 +17,9 @@ import code.challenge.rubicon.model.WaterOrder.OrderStatus;
  * Implementation of repository interface. Use a simple HashMap as repository.
  */
 @Repository
-public class WaterOrderRepository implements IWaterOrderRepository {
+public class HashMapOrderRepository implements IWaterOrderRepository {
 
-    private Map<String, WaterOrder> waterOrders = new HashMap<>();
+    private final Map<String, WaterOrder> waterOrders = new HashMap<>();
 
     /**
      * Add a new order. Generate a new order id and set it to the order.
@@ -28,17 +28,19 @@ public class WaterOrderRepository implements IWaterOrderRepository {
     public WaterOrder addWaterOrder(WaterOrder waterOrder) {
         // Generate order id for the new order.
         String orderId = this.generateOrderId(waterOrder);
-        WaterOrder newOrder = new WaterOrder(orderId, waterOrder.getFarmId(), waterOrder.getStartDateTime(),
-                waterOrder.getDuration(), WaterOrder.OrderStatus.REQUESTED);
-        this.waterOrders.put(orderId, newOrder);
-        return newOrder;
+        synchronized(this) {
+            WaterOrder newOrder = new WaterOrder(orderId, waterOrder.getFarmId(), waterOrder.getStartDateTime(),
+                    waterOrder.getDuration(), WaterOrder.OrderStatus.REQUESTED);
+            this.waterOrders.put(orderId, newOrder);
+            return newOrder;
+        }
     }
 
     /**
      * Cancel order.
      */
     @Override
-    public WaterOrder cancelWaterOrder(String orderId) throws OrderNotFoundException {
+    public synchronized WaterOrder cancelWaterOrder(String orderId) throws OrderNotFoundException {
         WaterOrder waterOrder = this.waterOrders.get(orderId);
         if (waterOrder != null) {
             this.updateOrderstatus(orderId, WaterOrder.OrderStatus.CANCELLED);
@@ -52,7 +54,7 @@ public class WaterOrderRepository implements IWaterOrderRepository {
      * Return all orders in repository.
      */
     @Override
-    public List<WaterOrder> getAllOrders() {
+    public synchronized List<WaterOrder> getAllOrders() {
         return new ArrayList<WaterOrder>(this.waterOrders.values());
     }
 
@@ -61,11 +63,14 @@ public class WaterOrderRepository implements IWaterOrderRepository {
      */
     @Override
     public WaterOrder getWaterOrderByOrderId(String orderId) throws OrderNotFoundException {
-        WaterOrder waterOrder = this.waterOrders.get(orderId);
+        WaterOrder waterOrder = null;
+        synchronized(this) {
+            waterOrder = this.waterOrders.get(orderId);
+        }
         if (waterOrder == null) {
             throw new OrderNotFoundException("orderId", String.format("Order ID '%s' doesn't exist.", orderId));
         }
-        return waterOrders.get(orderId);
+        return waterOrder;
     }
 
     /**
@@ -73,8 +78,11 @@ public class WaterOrderRepository implements IWaterOrderRepository {
      */
     @Override
     public List<WaterOrder> getWaterOrderByFarmrId(String farmId) throws OrderNotFoundException {
-        List<WaterOrder> orders = this.waterOrders.values().stream().filter(order -> order.getFarmId().equals(farmId))
-                .collect(Collectors.toList());
+        List<WaterOrder> orders = null;
+        synchronized(this) {
+            orders = this.waterOrders.values().stream().filter(order -> order.getFarmId().equals(farmId))
+                    .collect(Collectors.toList());
+        }
 
         if (orders.size() == 0) {
             throw new OrderNotFoundException("farmId", String.format("Order for farmID '%s' doesn't exist.", farmId));
@@ -87,7 +95,7 @@ public class WaterOrderRepository implements IWaterOrderRepository {
      * Update order's status.
      */
     @Override
-    public void updateOrderstatus(String orderId, OrderStatus status) throws OrderNotFoundException {
+    public synchronized void updateOrderstatus(String orderId, OrderStatus status) throws OrderNotFoundException {
         WaterOrder existingOrder = this.getWaterOrderByOrderId(orderId);
         existingOrder.setStatus(status);
     }

@@ -59,12 +59,17 @@ public class WaterOrderDeliveryScheduler implements IWaterOrderDeliveryScheduler
     public void addDeliverySchedule(WaterOrder waterOrder) {
         DeliveryTask deliveryTask = new DeliveryTask(waterOrder);
         deliveryTask.scheduleDelivery();
-        this.scheduledDeliveries.put(waterOrder.getOrderId(), deliveryTask);
+        synchronized(this) {
+            this.scheduledDeliveries.put(waterOrder.getOrderId(), deliveryTask);
+        }
     }
 
     @Override
     public void cancelDeliverySchdule(String orderId) throws DeliveryTaskNotFoundException, OrderNotFoundException {
-        DeliveryTask deliveryTask = this.scheduledDeliveries.get(orderId);
+        DeliveryTask deliveryTask = null;
+        synchronized(this) {
+            deliveryTask = this.scheduledDeliveries.get(orderId);
+        }
         if (deliveryTask == null) {
             throw new DeliveryTaskNotFoundException("orderId", "Cannot find delivery task for " + orderId);
         }

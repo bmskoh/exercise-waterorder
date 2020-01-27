@@ -32,12 +32,15 @@ public class DeliveryTimeOverlapValidator implements IValidityChecker {
         // This validator is only interested in CREATE action.
         if (action == WaterOrderRequestAction.CREATE) {
             try {
+                Optional<WaterOrder> overlappingOrder = null;
                 // Get all orders for the farm and check if there's any delivery time
                 // overlapping.
-                List<WaterOrder> orders = this.orderRetriever.getWaterOrderByFarmrId(waterOrder.getFarmId());
-                Optional<WaterOrder> overlappingOrder = orders.stream().filter(order -> {
-                    return this.isTimeOverlap(order, waterOrder);
-                }).findAny();
+                synchronized(this.orderRetriever) {
+                    List<WaterOrder> orders = this.orderRetriever.getWaterOrderByFarmrId(waterOrder.getFarmId());
+                    overlappingOrder = orders.stream().filter(order -> {
+                        return this.isTimeOverlap(order, waterOrder);
+                    }).findAny();
+                }
 
                 if (overlappingOrder.isPresent()) {
                     WaterOrder existingOrder = overlappingOrder.get();

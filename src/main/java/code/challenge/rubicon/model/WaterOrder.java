@@ -35,7 +35,7 @@ public class WaterOrder {
     // Unique ID of this order
     private String orderId;
     // This order's current status
-    private WaterOrder.OrderStatus status;
+    private volatile WaterOrder.OrderStatus status;
 
     public WaterOrder() {
     }
